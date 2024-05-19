@@ -1,5 +1,6 @@
 #include "argparse.hpp"
-#include "models/berserk.h"
+#include "models/orange.h"
+#include "xiangqi/xiangqi.h"
 
 #include <fstream>
 #include <limits>
@@ -125,10 +126,9 @@ int main(int argc, char* argv[]) {
               << "Batch: " << batch_size << "\n"
               << "LR Drop @ " << lr_drop_epoch << "\n"
               << "LR Drop R " << lr_drop_ratio << std::endl;
-
-    using BatchLoader = dataset::BatchLoader<chess::Position>;
-
+    using BatchLoader = dataset::BatchLoader<xiangqi::Position>;
     BatchLoader train_loader {train_files, batch_size};
+    
     train_loader.start();
 
     std::optional<BatchLoader> val_loader;
@@ -137,8 +137,8 @@ int main(int argc, char* argv[]) {
         val_loader->start();
     }
 
-    model::BerserkModel model {static_cast<size_t>(ft_size), lambda, static_cast<size_t>(save_rate)};
-    model.set_loss(MPE {2.5, true});
+    model::OrangeModel model {lambda, static_cast<size_t>(save_rate)};
+    model.set_loss(MSE());
     model.set_lr_schedule(StepDecayLRSchedule {lr, lr_drop_ratio, lr_drop_epoch});
 
     auto output_dir = program.get("--output");
@@ -152,12 +152,28 @@ int main(int argc, char* argv[]) {
         model.load_weights(*previous);
         std::cout << "Loaded weights from previous " << *previous << std::endl;
     }
-
     model.train(train_loader, val_loader, total_epochs, epoch_size, val_epoch_size);
-
     train_loader.kill();
-    val_loader->kill();
+    if (val_files.size() > 0) {
+       val_loader->kill();
+    }
 
     close();
     return 0;
 }
+
+    //BerserkModel(size_t n_ft, float lambda, size_t save_rate)
+    /*model::BerserkModel model {static_cast<size_t>(ft_size), lambda, static_cast<size_t>(save_rate)};
+    model.set_loss(MPE {2.5, true});
+    model.set_lr_schedule(StepDecayLRSchedule {lr, lr_drop_ratio, lr_drop_epoch});
+    auto output_dir = program.get("--output");
+    model.set_file_output(output_dir);
+    for (auto& quantizer : model.m_quantizers)
+        quantizer.set_path(output_dir);
+    std::cout << "Files will be saved to " << output_dir << std::endl;
+    if (auto previous = program.present("--resume")) {
+        model.load_weights(*previous);
+        std::cout << "Loaded weights from previous " << *previous << std::endl;
+    }
+    model.train(train_loader, val_loader, total_epochs, epoch_size, val_epoch_size);*/
+
