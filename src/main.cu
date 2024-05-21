@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
     }
 
     model::OrangeModel model {lambda, static_cast<size_t>(save_rate)};
-    model.set_loss(MSE());
+    model.set_loss(MPE {2.5, true});
     model.set_lr_schedule(StepDecayLRSchedule {lr, lr_drop_ratio, lr_drop_epoch});
 
     auto output_dir = program.get("--output");

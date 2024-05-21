@@ -62,14 +62,14 @@ struct OrangeModel : Model {
     const float output_weight_scaling = 32.0;
 
     OrangeModel(float lambda, size_t save_rate) {
+	this->lambda = lambda;
         in1     = add<SparseInput>(2 * 9 * 90, 32);
         in2     = add<SparseInput>(2 * 9 * 90, 32);
+
         auto ft = add<FeatureTransformer>(in1, in2, 128);
         auto re = add<ClippedRelu>(ft, 1.0);
         auto af = add<Affine>(re, 1);
         auto sm = add<Sigmoid>(af, 1.0 / 360.0);
-	this->lambda = lambda;
-
 	float scale_factor = (127.0 * 127.0) / 9600.0;
         add_optimizer(Adam({{OptimizerEntry {&ft->weights}},
                             {OptimizerEntry {&ft->bias}},
@@ -77,7 +77,7 @@ struct OrangeModel : Model {
                             {OptimizerEntry {&af->bias}}},
                            0.9,
                            0.999,
-                           8.75e-4));
+                           1e-8));
 
         set_save_frequency(save_rate);
 
@@ -217,14 +217,12 @@ struct OrangeModel : Model {
 	    setup_piece(b, turn, red_king, blk_king, pos->red.knight, 2, R_KNIGHT_OP);
 	    setup_piece(b, turn, red_king, blk_king, pos->blk.knight, 2, B_KNIGHT_OP);
 
-
 	    const int R_ROOK = 2;
 	    const int B_ROOK = 6;
 	    // rook
 	    setup_piece(b, turn, red_king, blk_king, pos->red.rook, 2, R_ROOK);
 	    setup_piece(b, turn, red_king, blk_king, pos->blk.rook, 2, B_ROOK);
           
-
 	    const int R_CANNON = 3;
 	    const int B_CANNON = 7;
 	    // cannon 
