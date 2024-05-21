@@ -80,6 +80,8 @@ struct OrangeModel : Model {
                            8.75e-4));
 
         set_save_frequency(save_rate);
+
+	// similar quantization scheme to Stockfish.
         add_quantization(Quantizer {
             "quant_1",
             10,
@@ -188,7 +190,9 @@ struct OrangeModel : Model {
         //const int BLK_TURN = 1;
         in1->sparse_output.clear();
         in2->sparse_output.clear();
+
         auto &target = m_loss->target;
+
 #pragma omp parallel for schedule(static) num_threads(4)
         for (int b = 0; b < positions->header.entry_count; b++) {
             xiangqi::Position* pos = &positions->positions[b];
@@ -233,8 +237,10 @@ struct OrangeModel : Model {
 	    setup_piece(b, turn, red_king, blk_king, pos->red.pawn, 5, R_PAWN);
 	    setup_piece(b, turn, red_king, blk_king, pos->blk.pawn, 5, B_PAWN);
 
+	    // the data files we load in are already doing evaluation relative to the side.
             float p_value = (float)(pos->score) / 360.0;
 	    //float w_value = pos->wdl;
+	    //
 	    // sigmoid.
 	    float p_target = 1.0 / (1.0 + expf(-p_value));
 	    target(b) = p_target;
