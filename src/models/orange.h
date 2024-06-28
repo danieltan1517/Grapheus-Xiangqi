@@ -57,23 +57,18 @@ struct OrangeModel : Model {
     SparseInput* in1;
     SparseInput* in2;
 
-    const float scale_a = 127.0;
-    const float scale_o = 360.0;
-    const float output_weight_scaling = 32.0;
-
     OrangeModel(float lambda, size_t save_rate) {
 	this->lambda = lambda;
         in1     = add<SparseInput>(2 * 9 * 90, 32);
         in2     = add<SparseInput>(2 * 9 * 90, 32);
 
         auto ft = add<FeatureTransformer>(in1, in2, 128);
-        auto re = add<ClippedRelu>(ft, 1.0);
+        auto re = add<ReLU>(ft);
         auto af = add<Affine>(re, 1);
         auto sm = add<Sigmoid>(af, 1.0 / 360.0);
-	float scale_factor = (127.0 * 127.0) / 9600.0;
         add_optimizer(Adam({{OptimizerEntry {&ft->weights}},
                             {OptimizerEntry {&ft->bias}},
-                            {OptimizerEntry {&af->weights}.clamp(-scale_factor, scale_factor)},
+                            {OptimizerEntry {&af->weights}},
                             {OptimizerEntry {&af->bias}}},
                            0.9,
                            0.999,
@@ -85,10 +80,10 @@ struct OrangeModel : Model {
         add_quantization(Quantizer {
             "quant_1",
             10,
-            QuantizerEntry<int16_t>(&ft->weights.values, scale_a, true),
-            QuantizerEntry<int16_t>(&ft->bias.values, scale_a),
-            QuantizerEntry<int8_t>(&af->weights.values, output_weight_scaling * scale_o / scale_a),
-            QuantizerEntry<int32_t>(&af->bias.values,   output_weight_scaling * scale_o),
+            QuantizerEntry<int16_t>(&ft->weights.values, 32, true),
+            QuantizerEntry<int16_t>(&ft->bias.values, 32),
+            QuantizerEntry<int16_t>(&af->weights.values, 128),
+            QuantizerEntry<int32_t>(&af->bias.values, 128 * 32),
         });
     }
 
